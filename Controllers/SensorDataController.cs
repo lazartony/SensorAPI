@@ -1,12 +1,15 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SensorAPI.Attributes;
-using SensorAPI.Models;
+using SensorAPI.Contracts;
+using SensorAPI.Converters;
 using SensorAPI.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace SensorAPI.Controllers
 {
@@ -14,47 +17,57 @@ namespace SensorAPI.Controllers
     [Route("sensorData")]
     public class SensorDataController : ControllerBase
     {
-        SensorDataService service;
-        public SensorDataController(IConfiguration configuration)
+        private ILogger<SensorDataController> _logger;
+        private SensorDataService _service;
+
+        public SensorDataController(ILogger<SensorDataController> logger, SensorDataService service)
         {
-            service = new SensorDataService(configuration);
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _service = service ?? throw new ArgumentNullException(nameof(service));
         }
 
         [HttpGet]
         [Route("")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<IEnumerable<SensorData>> GetAll()
+        public ActionResult<IEnumerable<SensorDataInfoContract>> GetAll()
         {
             try
             {
-                return service.GetAllData().ToList();
+                return Ok(_service.GetAll().Select(d => d.ToContract()));
             }
-            catch
+            catch(Exception ex)
             {
-                return StatusCode(500);
+                _logger.Log(LogLevel.Error, ex, "Exception at {nameOfMethod}", nameof(GetAll));
+                return StatusCode((int)HttpStatusCode.InternalServerError);
             }
         }
 
         [HttpGet]
         [Route("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<SensorData> Details(int id)
+        public ActionResult<SensorDataInfoContract> GetById(int id)
         {
             try
             {
-                var sensorData = service.GetData(id);
+                if(id <= 0)
+                {
+                    return BadRequest();
+                }
+                var sensorData = _service.GetById(id);
                 if (sensorData == null)
                 {
                     return NotFound();
                 }
-                return sensorData;
+                return Ok(sensorData.ToContract());
             }
-            catch
+            catch(Exception ex)
             {
-                return StatusCode(500);
+                _logger.Log(LogLevel.Error, ex, "Exception at {nameOfMethod}", nameof(GetById));
+                return StatusCode((int)HttpStatusCode.InternalServerError);
             }
         }
 
@@ -63,28 +76,93 @@ namespace SensorAPI.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ApiKey]
-        public ActionResult Create(SensorData sensorData)
+        public ActionResult Create(AddSensorDataContract sensorDataContract)
         {
             try
             {
-                if (!IsValidAddContract(sensorData))
+                if (string.IsNullOrWhiteSpace(sensorDataContract.Value))
                 {
                     return BadRequest();
                 }
-                service.AddData(sensorData);
-                return CreatedAtAction(nameof(Details), new { id = sensorData.Id }, sensorData);
+                var sensorData = sensorDataContract.ToModel();
+                _service.Add(sensorData);
+                return CreatedAtAction(nameof(GetById), new { id = sensorData.Id }, sensorData);
             }
-            catch
+            catch(Exception ex)
             {
-                return StatusCode(500);
+                _logger.Log(LogLevel.Error, ex, "Exception at {nameOfMethod}", nameof(Create));
+                return StatusCode((int)HttpStatusCode.InternalServerError);
             }
         }
 
-        private static bool IsValidAddContract(SensorData sensorData)
+        [HttpDelete]
+        [Route("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ApiKey]
+        public ActionResult Delete(int id)
         {
-            return true;
+            try
+            {
+                if (id <= 0)
+                {
+                    return BadRequest();
+                }
+                var rows = _service.Delete(id);
+                if (rows <= 0)
+                {
+                    return NotFound();
+                }
+                return NoContent();
+            }
+            catch(Exception ex)
+            {
+                _logger.Log(LogLevel.Error, ex, "Exception at {nameOfMethod}", nameof(Delete));
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+        }
+
+        [HttpPatch]
+        [Route("{id}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ApiKey]
+        public ActionResult Update(int id, UpdateSensorDataContract sensorDataContract)
+        {
+            try
+            {
+                if (id <= 0)
+                {
+                    return BadRequest();
+                }
+                if (string.IsNullOrWhiteSpace(sensorDataContract.Value))
+                {
+                    return BadRequest();
+                }
+                var sensorData = sensorDataContract.ToModel(id);
+                int rows = _service.Update(sensorData);
+                if (rows <= 0)
+                {
+                    return NotFound();
+                }
+                return NoContent();
+            }
+            catch(Exception ex)
+            {
+                _logger.Log(LogLevel.Error, ex, "Exception at {nameOfMethod}", nameof(Update));
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
         }
     }
 }

@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
 using System;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
+using System.Net;
 
 namespace SensorAPI.Attributes
 {
@@ -16,11 +18,7 @@ namespace SensorAPI.Attributes
         {
             if (!context.HttpContext.Request.Headers.TryGetValue(APIKEYNAME, out var extractedApiKey))
             {
-                context.Result = new ContentResult()
-                {
-                    StatusCode = 401,
-                    Content = "Api Key was not provided"
-                };
+                context.Result = new UnauthorizedResult();
                 return;
             }
 
@@ -30,11 +28,7 @@ namespace SensorAPI.Attributes
 
             if (!apiKey.Equals(extractedApiKey))
             {
-                context.Result = new ContentResult()
-                {
-                    StatusCode = 401,
-                    Content = "Api Key is not valid"
-                };
+                context.Result = new StatusCodeResult((int)HttpStatusCode.Forbidden);
                 return;
             }
 

@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace SensorAPI.Models
+namespace SensorAPI.Contracts
 {
-    public class SensorData
+    public class SensorDataInfoContract
     {
         public int Id { get; set; }
         public string Value { get; set; }
