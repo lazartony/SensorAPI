@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using SensorAPI.Attributes;
 using SensorAPI.Models;
 using SensorAPI.Services;
@@ -14,9 +15,9 @@ namespace SensorAPI.Controllers
     public class SensorDataController : ControllerBase
     {
         SensorDataService service;
-        public SensorDataController()
+        public SensorDataController(IConfiguration configuration)
         {
-            service = new SensorDataService();
+            service = new SensorDataService(configuration);
         }
 
         [HttpGet]
