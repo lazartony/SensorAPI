@@ -3,6 +3,6 @@
     public class SensorData
     {
         public int Id { get; set; }
-        public int Value { get; set; }
+        public string Value { get; set; }
     }
 }

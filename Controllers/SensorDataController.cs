@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SensorAPI.Attributes;
 using SensorAPI.Models;
 using SensorAPI.Services;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -37,8 +38,8 @@ namespace SensorAPI.Controllers
         [HttpGet]
         [Route("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<SensorData> Details(int id)
         {
             try
@@ -52,7 +53,7 @@ namespace SensorAPI.Controllers
             }
             catch
             {
-                return BadRequest();
+                return StatusCode(500);
             }
         }
 
@@ -61,6 +62,7 @@ namespace SensorAPI.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ApiKey]
         public ActionResult Create(SensorData sensorData)
         {
@@ -75,7 +77,7 @@ namespace SensorAPI.Controllers
             }
             catch
             {
-                return BadRequest();
+                return StatusCode(500);
             }
         }
 
