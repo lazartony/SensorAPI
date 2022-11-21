@@ -14,8 +14,7 @@ namespace SensorAPI.Attributes
         private const string APIKEYNAME = "ApiKey";
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            if (!context.HttpContext.Request.Headers.TryGetValue
-                (APIKEYNAME, out var extractedApiKey))
+            if (!context.HttpContext.Request.Headers.TryGetValue(APIKEYNAME, out var extractedApiKey))
             {
                 context.Result = new ContentResult()
                 {

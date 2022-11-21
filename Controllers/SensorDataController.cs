@@ -61,6 +61,7 @@ namespace SensorAPI.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ApiKey]
         public ActionResult Create(SensorData sensorData)
         {
             try
